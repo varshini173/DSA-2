@@ -1,88 +1,122 @@
+import java.util.*;
+
 public class co2 {
 
-    static class FenwickTree {
-        int[] bit;
-        int n;
+    static class IndexEntry {
+        long offset;
+        long position;
 
-        FenwickTree(int n) {
-            this.n = n;
-            bit = new int[n + 1];
-        }
-
-        void update(int index, int value) {
-            while (index <= n) {
-                bit[index] += value;
-                index += index & (-index);
-            }
-        }
-
-        int prefixSum(int index) {
-            int sum = 0;
-            while (index > 0) {
-                sum += bit[index];
-                index -= index & (-index);
-            }
-            return sum;
-        }
-
-        int rangeSum(int left, int right) {
-            return prefixSum(right) - prefixSum(left - 1);
+        IndexEntry(long offset, long position) {
+            this.offset = offset;
+            this.position = position;
         }
     }
 
     public static void main(String[] args) {
 
-        int sales[] = {10, 20, 30, 40, 50, 60, 70, 80};
+        ArrayList<IndexEntry> sparseIndex = new ArrayList<>();
 
-        FenwickTree ft = new FenwickTree(sales.length);
+        sparseIndex.add(new IndexEntry(1000, 4096));
+        sparseIndex.add(new IndexEntry(3000, 12288));
+        sparseIndex.add(new IndexEntry(5000, 20480));
+        sparseIndex.add(new IndexEntry(7000, 28672));
+        sparseIndex.add(new IndexEntry(9000, 36864));
 
-        System.out.println("FENWICK TREE SALES ANALYTICS\n");
+        long targetOffset = 7850;
 
-        System.out.print("Initial Product Sales:\n[");
-        for (int i = 0; i < sales.length; i++) {
-            System.out.print(sales[i]);
-            if (i < sales.length - 1)
-                System.out.print(", ");
+        System.out.println("APACHE KAFKA SPARSE INDEX LOOKUP\n");
+
+        System.out.println("Target Offset: " + targetOffset);
+
+        System.out.println("\nSparse Index Entries:");
+        for (IndexEntry entry : sparseIndex) {
+            System.out.println(entry.offset + " -> Position " + entry.position);
         }
-        System.out.println("]\n");
 
-        for (int i = 0; i < sales.length; i++) {
-            ft.update(i + 1, sales[i]);
+        int low = 0;
+        int high = sparseIndex.size() - 1;
+
+        IndexEntry nearest = null;
+
+        System.out.println("\nBINARY SEARCH PROCESS:");
+
+        while (low <= high) {
+
+            int mid = (low + high) / 2;
+            IndexEntry current = sparseIndex.get(mid);
+
+            System.out.println(
+                    "Checking Offset " + current.offset);
+
+            if (current.offset == targetOffset) {
+                nearest = current;
+                break;
+            }
+
+            if (current.offset < targetOffset) {
+                nearest = current;
+                System.out.println("Move Right");
+                low = mid + 1;
+            } else {
+                System.out.println("Move Left");
+                high = mid - 1;
+            }
         }
 
-        System.out.println("Fenwick Tree Constructed Successfully\n");
+        System.out.println("\nNEAREST INDEX ENTRY FOUND:");
+        System.out.println(
+                nearest.offset +
+                " -> Position " +
+                nearest.position);
 
-        System.out.println("Queries Performed:\n");
+        System.out.println("\nJUMP TO PHYSICAL POSITION:");
+        System.out.println("Position " + nearest.position);
 
-        System.out.println("1) Prefix Sum upto Product 4");
-        System.out.println("Result = " + ft.prefixSum(4));
+        System.out.println("\nSEQUENTIAL SCAN:");
 
-        System.out.println("\n2) Range Sum (Product 2 to Product 6)");
-        System.out.println("Result = " + ft.rangeSum(2, 6));
+        long recordsScanned = 0;
 
-        System.out.println("\nSales Update:");
-        System.out.println("Product 5 += 25");
+        for (long offset = nearest.offset + 1;
+             offset <= targetOffset;
+             offset++) {
 
-        sales[4] += 25;
-        ft.update(5, 25);
+            recordsScanned++;
 
-        System.out.print("\nUpdated Product Sales:\n[");
-        for (int i = 0; i < sales.length; i++) {
-            System.out.print(sales[i]);
-            if (i < sales.length - 1)
-                System.out.print(", ");
+            if (offset <= nearest.offset + 5 ||
+                offset >= targetOffset - 5) {
+
+                System.out.println("Scanning Offset " + offset);
+            }
+
+            if (offset == nearest.offset + 6) {
+                System.out.println("...");
+            }
         }
-        System.out.println("]\n");
 
-        System.out.println("3) Prefix Sum upto Product 5");
-        System.out.println("Result = " + ft.prefixSum(5));
+        System.out.println("\nRECORD FOUND!");
+        System.out.println("Offset = " + targetOffset);
 
-        System.out.println("\n4) Range Sum (Product 3 to Product 7)");
-        System.out.println("Result = " + ft.rangeSum(3, 7));
+        System.out.println("\nSTATISTICS");
+        System.out.println("Index Size (n_index): "
+                + sparseIndex.size());
 
-        System.out.println("\nTime Complexity:");
-        System.out.println("Update = O(log n)");
-        System.out.println("Prefix Sum Query = O(log n)");
-        System.out.println("Range Sum Query = O(log n)");
+        System.out.println("Records Scanned (k): "
+                + recordsScanned);
+
+        System.out.println("\nTIME COMPLEXITY");
+        System.out.println(
+                "Binary Search : O(log n_index)");
+        System.out.println(
+                "Sequential Scan : O(k)");
+        System.out.println(
+                "Overall : O(log n_index + k)");
+
+        System.out.println("\nINDEX DENSITY TRADE-OFF");
+        System.out.println(
+                "Dense Index  -> Faster seeks, more memory");
+        System.out.println(
+                "Sparse Index -> Less memory, more scanning");
+        System.out.println(
+                "Kafka favors Sparse Index for scalability.");
     }
 }
