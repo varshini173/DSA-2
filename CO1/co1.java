@@ -1,114 +1,150 @@
-import java.util.ArrayList;
+import java.util.*;
 
-class Node {
-    double rating;
+class AVLNode {
+    long ts;
+    String trackId;
+    AVLNode left, right;
     int height;
-    int size;
-    Node left, right;
 
-    Node(double rating) {
-        this.rating = rating;
+    AVLNode(long ts, String tid) {
+        this.ts = ts;
+        this.trackId = tid;
         this.height = 1;
-        this.size = 1;
     }
 }
 
 public class co1 {
 
-    Node root;
-    ArrayList<String> rotations = new ArrayList<>();
+    static List<String> rotations = new ArrayList<>();
 
-    int height(Node n) {
+    static int height(AVLNode n) {
         return (n == null) ? 0 : n.height;
     }
 
-    int size(Node n) {
-        return (n == null) ? 0 : n.size;
-    }
-
-    void update(Node n) {
-        if (n != null) {
-            n.height = 1 + Math.max(height(n.left), height(n.right));
-            n.size = 1 + size(n.left) + size(n.right);
-        }
-    }
-
-    int getBalance(Node n) {
+    static int getBalance(AVLNode n) {
         return (n == null) ? 0 : height(n.left) - height(n.right);
     }
 
-    Node rightRotate(Node y) {
-        Node x = y.left;
-        Node t2 = x.right;
+    static AVLNode rightRotate(AVLNode y) {
+
+        AVLNode x = y.left;
+        AVLNode T2 = x.right;
 
         x.right = y;
-        y.left = t2;
+        y.left = T2;
 
-        update(y);
-        update(x);
+        y.height =
+            Math.max(height(y.left), height(y.right)) + 1;
+
+        x.height =
+            Math.max(height(x.left), height(x.right)) + 1;
 
         return x;
     }
 
-    Node leftRotate(Node x) {
-        Node y = x.right;
-        Node t2 = y.left;
+    static AVLNode leftRotate(AVLNode x) {
+
+        AVLNode y = x.right;
+        AVLNode T2 = y.left;
 
         y.left = x;
-        x.right = t2;
+        x.right = T2;
 
-        update(x);
-        update(y);
+        x.height =
+            Math.max(height(x.left), height(x.right)) + 1;
+
+        y.height =
+            Math.max(height(y.left), height(y.right)) + 1;
 
         return y;
     }
 
-    Node insert(Node node, double rating) {
+    // DESCENDING TREE
+    // Larger timestamp goes LEFT
+    static AVLNode insert(AVLNode node,
+                          long ts,
+                          String trackId) {
 
         if (node == null)
-            return new Node(rating);
+            return new AVLNode(ts, trackId);
 
-        if (rating < node.rating)
-            node.left = insert(node.left, rating);
+        if (ts > node.ts)
+            node.left =
+                insert(node.left, ts, trackId);
+
+        else if (ts < node.ts)
+            node.right =
+                insert(node.right, ts, trackId);
+
         else
-            node.right = insert(node.right, rating);
+            return node;
 
-        update(node);
+        node.height =
+            1 + Math.max(
+                    height(node.left),
+                    height(node.right));
 
         int balance = getBalance(node);
 
         // LL
-        if (balance > 1 && rating < node.left.rating) {
-            rotations.add("LL Rotation at pivot " + node.rating);
+        if (balance > 1 &&
+            ts > node.left.ts) {
+
+            rotations.add(
+                "LL Rotation at pivot "
+                + node.ts);
+
             return rightRotate(node);
         }
 
         // RR
-        if (balance < -1 && rating > node.right.rating) {
-            rotations.add("RR Rotation at pivot " + node.rating);
+        if (balance < -1 &&
+            ts < node.right.ts) {
+
+            rotations.add(
+                "RR Rotation at pivot "
+                + node.ts);
+
             return leftRotate(node);
         }
 
         // LR
-        if (balance > 1 && rating > node.left.rating) {
-            rotations.add("LR Rotation at pivot " + node.rating);
-            node.left = leftRotate(node.left);
+        if (balance > 1 &&
+            ts < node.left.ts) {
+
+            rotations.add(
+                "LR Rotation at pivot "
+                + node.ts);
+
+            node.left =
+                leftRotate(node.left);
+
             return rightRotate(node);
         }
 
         // RL
-        if (balance < -1 && rating < node.right.rating) {
-            rotations.add("RL Rotation at pivot " + node.rating);
-            node.right = rightRotate(node.right);
+        if (balance < -1 &&
+            ts > node.right.ts) {
+
+            rotations.add(
+                "RL Rotation at pivot "
+                + node.ts);
+
+            node.right =
+                rightRotate(node.right);
+
             return leftRotate(node);
         }
 
         return node;
     }
 
-    void printTree(Node node, String indent, boolean last) {
+    static void printTree(
+            AVLNode root,
+            String indent,
+            boolean last) {
 
-        if (node != null) {
+        if (root != null) {
 
             System.out.print(indent);
 
@@ -120,82 +156,134 @@ public class co1 {
                 indent += "|    ";
             }
 
-            System.out.println(node.rating +
-                    "(bf=" + getBalance(node) +
-                    ",size=" + node.size + ")");
+            System.out.println(
+                root.ts +
+                "(bf=" +
+                getBalance(root) +
+                ")");
 
-            printTree(node.right, indent, false);
-            printTree(node.left, indent, true);
+            printTree(
+                root.left,
+                indent,
+                false);
+
+            printTree(
+                root.right,
+                indent,
+                true);
         }
     }
 
-    double findMedian(Node node, int k) {
+    static void topKHelper(
+            AVLNode root,
+            int k,
+            List<Long> result) {
 
-        int leftSize = size(node.left);
+        if (root == null ||
+            result.size() >= k)
+            return;
 
-        System.out.println("\nVisiting Node: " + node.rating);
-        System.out.println("Left Subtree Size = " + leftSize);
+        // In-order gives descending order
+        topKHelper(
+            root.left,
+            k,
+            result);
 
-        if (k == leftSize + 1) {
-            System.out.println("Median Found!");
-            return node.rating;
-        }
+        if (result.size() < k)
+            result.add(root.ts);
 
-        if (k <= leftSize) {
-            System.out.println("Move Left");
-            return findMedian(node.left, k);
-        }
+        if (result.size() >= k)
+            return;
 
-        System.out.println("Move Right");
-        return findMedian(node.right, k - leftSize - 1);
+        topKHelper(
+            root.right,
+            k,
+            result);
+    }
+
+    static List<Long> topKDescending(
+            AVLNode root,
+            int k) {
+
+        List<Long> result =
+            new ArrayList<>();
+
+        topKHelper(root, k, result);
+
+        return result;
     }
 
     public static void main(String[] args) {
 
-        co1 tree = new co1();
-
-        double ratings[] = {
-                4.5, 3.8, 4.2, 5.0, 4.0,
-                4.7, 3.9, 4.3, 4.1
+        long timestamps[] = {
+            32400,
+            28800,
+            36000,
+            25200,
+            39600,
+            21600,
+            43200,
+            18000,
+            46800,
+            14400,
+            50400
         };
 
-        System.out.println("GOODREADS RATING INSERTION\n");
+        AVLNode root = null;
 
-        System.out.print("Ratings inserted:\n");
-        for (double r : ratings) {
-            System.out.print(r + " ");
-            tree.root = tree.insert(tree.root, r);
+        System.out.println(
+            "AVL INSERTION (Arrival Order)\n");
+
+        System.out.println(
+            "Insertion order:");
+
+        for (long ts : timestamps) {
+            System.out.print(ts + " ");
+
+            root = insert(
+                root,
+                ts,
+                "Track_" + ts);
         }
 
         System.out.println("\n");
 
-        System.out.println("Rotations that occurred:");
-        if (tree.rotations.isEmpty()) {
-            System.out.println("No rotations required");
-        } else {
-            for (String r : tree.rotations)
-                System.out.println(r);
+        System.out.println(
+            "Rotations that occurred:");
+
+        if (rotations.isEmpty()) {
+
+            System.out.println(
+                "No rotations");
+        }
+        else {
+
+            for (String s : rotations)
+                System.out.println(s);
         }
 
-        System.out.println("\nFINAL AVL TREE");
-        System.out.println("(Ratings BST Structure)\n");
+        System.out.println(
+            "\nFINAL AVL TREE");
+        System.out.println(
+            "(Descending by timestamp)\n");
 
-        tree.printTree(tree.root, "", true);
+        printTree(root, "", true);
 
-        int totalRatings = tree.size(tree.root);
-        int medianRank = (totalRatings + 1) / 2;
+        System.out.println(
+            "\nTOP 5 DESCENDING (k = 5)");
 
-        System.out.println("\nMEDIAN LOOKUP");
-        System.out.println("\nTotal Ratings : " + totalRatings);
-        System.out.println("Median Rank   : " + medianRank);
+        List<Long> top5 =
+            topKDescending(root, 5);
 
-        double median = tree.findMedian(tree.root, medianRank);
+        System.out.println(
+            "Top 5 timestamps (most recent first):");
 
-        System.out.println("\nMedian Rating = " + median);
+        System.out.println(top5);
 
-        System.out.println("\nTime Complexity:");
-        System.out.println("Insertion     : O(log n)");
-        System.out.println("Deletion      : O(log n)");
-        System.out.println("Median Lookup : O(log n)");
+        System.out.println(
+            "\nTime Complexity (worst case):");
+
+        System.out.println(
+            "O(min(n,k) + log n)");
     }
 }
