@@ -1,122 +1,286 @@
 import java.util.*;
 
+class PSegNode {
+    long sum;
+    PSegNode left, right;
+
+    PSegNode(long s, PSegNode l, PSegNode r) {
+        sum = s;
+        left = l;
+        right = r;
+    }
+}
+
 public class co2 {
 
-    static class IndexEntry {
-        long offset;
-        long position;
+    static int newNodesCreated = 0;
 
-        IndexEntry(long offset, long position) {
-            this.offset = offset;
-            this.position = position;
+    // Build initial tree
+    static PSegNode build(int[] arr, int lo, int hi) {
+
+        if (lo == hi) {
+            return new PSegNode(arr[lo], null, null);
         }
+
+        int mid = (lo + hi) / 2;
+
+        PSegNode left = build(arr, lo, mid);
+        PSegNode right = build(arr, mid + 1, hi);
+
+        return new PSegNode(
+                left.sum + right.sum,
+                left,
+                right
+        );
+    }
+
+    // Persistent Update
+    static PSegNode pointUpdate(
+            PSegNode node,
+            int lo,
+            int hi,
+            int idx,
+            long newVal) {
+
+        newNodesCreated++;
+
+        if (lo == hi) {
+            return new PSegNode(
+                    newVal,
+                    null,
+                    null
+            );
+        }
+
+        int mid = (lo + hi) / 2;
+
+        if (idx <= mid) {
+
+            PSegNode newLeft =
+                    pointUpdate(
+                            node.left,
+                            lo,
+                            mid,
+                            idx,
+                            newVal
+                    );
+
+            return new PSegNode(
+                    newLeft.sum + node.right.sum,
+                    newLeft,
+                    node.right      // shared
+            );
+        }
+        else {
+
+            PSegNode newRight =
+                    pointUpdate(
+                            node.right,
+                            mid + 1,
+                            hi,
+                            idx,
+                            newVal
+                    );
+
+            return new PSegNode(
+                    node.left.sum + newRight.sum,
+                    node.left,      // shared
+                    newRight
+            );
+        }
+    }
+
+    static long rangeSum(
+            PSegNode node,
+            int lo,
+            int hi,
+            int l,
+            int r) {
+
+        if (r < lo || hi < l)
+            return 0;
+
+        if (l <= lo && hi <= r)
+            return node.sum;
+
+        int mid = (lo + hi) / 2;
+
+        return rangeSum(
+                node.left,
+                lo,
+                mid,
+                l,
+                r
+        ) +
+        rangeSum(
+                node.right,
+                mid + 1,
+                hi,
+                l,
+                r
+        );
+    }
+
+    static void printResults(
+            String version,
+            PSegNode root) {
+
+        System.out.println(
+                version +
+                " Root Sum = " +
+                root.sum
+        );
     }
 
     public static void main(String[] args) {
 
-        ArrayList<IndexEntry> sparseIndex = new ArrayList<>();
+        int stock[] = {
+                12, 7, 25, 18,
+                9, 14, 6, 30
+        };
 
-        sparseIndex.add(new IndexEntry(1000, 4096));
-        sparseIndex.add(new IndexEntry(3000, 12288));
-        sparseIndex.add(new IndexEntry(5000, 20480));
-        sparseIndex.add(new IndexEntry(7000, 28672));
-        sparseIndex.add(new IndexEntry(9000, 36864));
-
-        long targetOffset = 7850;
-
-        System.out.println("APACHE KAFKA SPARSE INDEX LOOKUP\n");
-
-        System.out.println("Target Offset: " + targetOffset);
-
-        System.out.println("\nSparse Index Entries:");
-        for (IndexEntry entry : sparseIndex) {
-            System.out.println(entry.offset + " -> Position " + entry.position);
-        }
-
-        int low = 0;
-        int high = sparseIndex.size() - 1;
-
-        IndexEntry nearest = null;
-
-        System.out.println("\nBINARY SEARCH PROCESS:");
-
-        while (low <= high) {
-
-            int mid = (low + high) / 2;
-            IndexEntry current = sparseIndex.get(mid);
-
-            System.out.println(
-                    "Checking Offset " + current.offset);
-
-            if (current.offset == targetOffset) {
-                nearest = current;
-                break;
-            }
-
-            if (current.offset < targetOffset) {
-                nearest = current;
-                System.out.println("Move Right");
-                low = mid + 1;
-            } else {
-                System.out.println("Move Left");
-                high = mid - 1;
-            }
-        }
-
-        System.out.println("\nNEAREST INDEX ENTRY FOUND:");
         System.out.println(
-                nearest.offset +
-                " -> Position " +
-                nearest.position);
+                "AMAZON WAREHOUSE INVENTORY SNAPSHOTS\n"
+        );
 
-        System.out.println("\nJUMP TO PHYSICAL POSITION:");
-        System.out.println("Position " + nearest.position);
-
-        System.out.println("\nSEQUENTIAL SCAN:");
-
-        long recordsScanned = 0;
-
-        for (long offset = nearest.offset + 1;
-             offset <= targetOffset;
-             offset++) {
-
-            recordsScanned++;
-
-            if (offset <= nearest.offset + 5 ||
-                offset >= targetOffset - 5) {
-
-                System.out.println("Scanning Offset " + offset);
-            }
-
-            if (offset == nearest.offset + 6) {
-                System.out.println("...");
-            }
-        }
-
-        System.out.println("\nRECORD FOUND!");
-        System.out.println("Offset = " + targetOffset);
-
-        System.out.println("\nSTATISTICS");
-        System.out.println("Index Size (n_index): "
-                + sparseIndex.size());
-
-        System.out.println("Records Scanned (k): "
-                + recordsScanned);
-
-        System.out.println("\nTIME COMPLEXITY");
         System.out.println(
-                "Binary Search : O(log n_index)");
-        System.out.println(
-                "Sequential Scan : O(k)");
-        System.out.println(
-                "Overall : O(log n_index + k)");
+                "Initial Stock:"
+        );
 
-        System.out.println("\nINDEX DENSITY TRADE-OFF");
         System.out.println(
-                "Dense Index  -> Faster seeks, more memory");
+                Arrays.toString(stock)
+        );
+
+        // v0
+        PSegNode v0 =
+                build(stock, 0, 7);
+
+        printResults("v0", v0);
+
+        // Update 1
+        // stock[3] += 50
+        stock[2] += 50;
+
+        newNodesCreated = 0;
+
+        PSegNode v1 =
+                pointUpdate(
+                        v0,
+                        0,
+                        7,
+                        2,
+                        stock[2]
+                );
+
         System.out.println(
-                "Sparse Index -> Less memory, more scanning");
+                "\nUpdate (i): stock[3] += 50"
+        );
+
+        printResults("v1", v1);
+
         System.out.println(
-                "Kafka favors Sparse Index for scalability.");
+                "New Nodes Created = "
+                + newNodesCreated
+        );
+
+        // Update 2
+        // stock[6] -= 4
+        stock[5] -= 4;
+
+        newNodesCreated = 0;
+
+        PSegNode v2 =
+                pointUpdate(
+                        v1,
+                        0,
+                        7,
+                        5,
+                        stock[5]
+                );
+
+        System.out.println(
+                "\nUpdate (ii): stock[6] -= 4"
+        );
+
+        printResults("v2", v2);
+
+        System.out.println(
+                "New Nodes Created = "
+                + newNodesCreated
+        );
+
+        // Update 3
+        // stock[3] -= 12
+        stock[2] -= 12;
+
+        newNodesCreated = 0;
+
+        PSegNode v3 =
+                pointUpdate(
+                        v2,
+                        0,
+                        7,
+                        2,
+                        stock[2]
+                );
+
+        System.out.println(
+                "\nUpdate (iii): stock[3] -= 12"
+        );
+
+        printResults("v3", v3);
+
+        System.out.println(
+                "New Nodes Created = "
+                + newNodesCreated
+        );
+
+        System.out.println(
+                "\nRANGE SUM QUERY"
+        );
+
+        System.out.println(
+                "Categories 3..6"
+        );
+
+        System.out.println(
+                "v0 : "
+                + rangeSum(v0,0,7,2,5)
+        );
+
+        System.out.println(
+                "v1 : "
+                + rangeSum(v1,0,7,2,5)
+        );
+
+        System.out.println(
+                "v2 : "
+                + rangeSum(v2,0,7,2,5)
+        );
+
+        System.out.println(
+                "v3 : "
+                + rangeSum(v3,0,7,2,5)
+        );
+
+        System.out.println(
+                "\nMEMORY ANALYSIS"
+        );
+
+        System.out.println(
+                "Original Tree Nodes = 15"
+        );
+
+        System.out.println(
+                "New Nodes Per Update = 4"
+        );
+
+        System.out.println(
+                "Total Nodes = 15 + (3 × 4)"
+        );
+
+        System.out.println(
+                "= 27"
+        );
     }
 }
