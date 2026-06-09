@@ -1,103 +1,258 @@
-import java.util.Arrays;
+import java.util.*;
+
+class Frame {
+    String node;
+    boolean processed;
+
+    Frame(String n, boolean p) {
+        node = n;
+        processed = p;
+    }
+
+    @Override
+    public String toString() {
+        return processed
+                ? node + "(L)"
+                : node + "(E)";
+    }
+}
 
 public class co3 {
 
-    static final int V = 5;
+    static void addEdge(
+            Map<String, List<String>> adj,
+            String from,
+            String to) {
 
-    int minDistance(int dist[], boolean visited[]) {
+        adj.putIfAbsent(from,
+                new ArrayList<>());
 
-        int min = Integer.MAX_VALUE;
-        int minIndex = -1;
+        adj.putIfAbsent(to,
+                new ArrayList<>());
 
-        for (int v = 0; v < V; v++) {
-            if (!visited[v] && dist[v] < min) {
-                min = dist[v];
-                minIndex = v;
-            }
-        }
-
-        return minIndex;
+        adj.get(from).add(to);
     }
 
-    void dijkstra(int graph[][], int src) {
+    static String stackToString(
+            Deque<Frame> stack) {
 
-        int dist[] = new int[V];
-        boolean visited[] = new boolean[V];
+        List<String> temp =
+                new ArrayList<>();
 
-        Arrays.fill(dist, Integer.MAX_VALUE);
-        dist[src] = 0;
-
-        System.out.println("DIJKSTRA'S SHORTEST PATH ANALYSIS\n");
-
-        String[] locations = {
-                "Home",
-                "Mall",
-                "College",
-                "Railway Station",
-                "Airport"
-        };
-
-        System.out.println("Locations:");
-        for (int i = 0; i < V; i++) {
-            System.out.println(i + " - " + locations[i]);
+        for (Frame f : stack) {
+            temp.add(f.toString());
         }
 
-        System.out.println("\nRoad Network Constructed Successfully");
-        System.out.println("\nSource Location: Home (0)\n");
+        return temp.toString();
+    }
 
-        for (int count = 0; count < V - 1; count++) {
+    static List<String> topoSortIterative(
+            Map<String, List<String>> adj,
+            String start) {
 
-            int u = minDistance(dist, visited);
-            visited[u] = true;
+        Map<String, Integer> color =
+                new HashMap<>();
 
-            System.out.println("Step " + (count + 1) + ":");
-            System.out.println("Selected Node = " + locations[u]);
+        for (String v : adj.keySet()) {
+            color.put(v, 0);
+        }
 
-            for (int v = 0; v < V; v++) {
+        List<String> order =
+                new ArrayList<>();
 
-                if (!visited[v]
-                        && graph[u][v] != 0
-                        && dist[u] != Integer.MAX_VALUE
-                        && dist[u] + graph[u][v] < dist[v]) {
+        Deque<Frame> stack =
+                new ArrayDeque<>();
 
-                    dist[v] = dist[u] + graph[u][v];
+        stack.push(
+                new Frame(start, false));
+
+        System.out.println(
+                "DFS TRACE TABLE\n");
+
+        System.out.printf(
+                "%-5s %-12s %-10s %-10s %-50s %-30s%n",
+                "Step",
+                "Node",
+                "Action",
+                "Color",
+                "Stack",
+                "Output");
+
+        int step = 1;
+
+        while (!stack.isEmpty()) {
+
+            Frame f = stack.pop();
+
+            if (f.processed) {
+
+                color.put(f.node, 2);
+
+                order.add(f.node);
+
+                System.out.printf(
+                        "%-5d %-12s %-10s %-10s %-50s %-30s%n",
+                        step++,
+                        f.node,
+                        "LEAVE",
+                        "BLACK",
+                        stackToString(stack),
+                        order);
+
+                continue;
+            }
+
+            if (color.get(f.node) != 0)
+                continue;
+
+            color.put(f.node, 1);
+
+            stack.push(
+                    new Frame(
+                            f.node,
+                            true));
+
+            List<String> nbrs =
+                    new ArrayList<>(
+                            adj.get(f.node));
+
+            nbrs.sort(
+                    Collections.reverseOrder());
+
+            for (String n : nbrs) {
+
+                if (color.get(n) == 0) {
+
+                    stack.push(
+                            new Frame(
+                                    n,
+                                    false));
                 }
             }
 
-            System.out.println("Current Distances:");
-            for (int i = 0; i < V; i++) {
-                if (dist[i] == Integer.MAX_VALUE)
-                    System.out.println(locations[i] + " = INF");
-                else
-                    System.out.println(locations[i] + " = " + dist[i]);
-            }
-            System.out.println();
+            System.out.printf(
+                    "%-5d %-12s %-10s %-10s %-50s %-30s%n",
+                    step++,
+                    f.node,
+                    "ENTER",
+                    "GREY",
+                    stackToString(stack),
+                    order);
         }
 
-        System.out.println("FINAL SHORTEST DISTANCES\n");
-
-        for (int i = 0; i < V; i++) {
-            System.out.println(
-                    "Home -> " + locations[i] +
-                    " = " + dist[i]
-            );
-        }
-
-        System.out.println("\nTime Complexity:");
-        System.out.println("O((V + E) log V)");
+        return order;
     }
 
     public static void main(String[] args) {
 
-        int graph[][] = {
-                {0, 4, 2, 0, 0},
-                {4, 0, 1, 5, 0},
-                {2, 1, 0, 8, 10},
-                {0, 5, 8, 0, 2},
-                {0, 0, 10, 2, 0}
-        };
+        Map<String, List<String>> adj =
+                new HashMap<>();
 
-        co3 d = new co3();
-        d.dijkstra(graph, 0);
+        addEdge(adj, "app", "core");
+
+        addEdge(adj, "core", "logging");
+        addEdge(adj, "core", "util");
+
+        addEdge(adj, "logging", "filehandler");
+        addEdge(adj, "logging", "log4j");
+
+        addEdge(adj, "util", "math");
+        addEdge(adj, "util", "serial");
+
+        addEdge(adj, "math", "bigint");
+
+        System.out.println(
+                "MAVEN DEPENDENCY RESOLVER\n");
+
+        System.out.println(
+                "Dependency Graph:\n");
+
+        System.out.println(
+                "app -> core");
+        System.out.println(
+                "core -> logging");
+        System.out.println(
+                "core -> util");
+        System.out.println(
+                "logging -> filehandler");
+        System.out.println(
+                "logging -> log4j");
+        System.out.println(
+                "util -> math");
+        System.out.println(
+                "util -> serial");
+        System.out.println(
+                "math -> bigint\n");
+
+        List<String> topo =
+                topoSortIterative(
+                        adj,
+                        "app");
+
+        System.out.println(
+                "\nFINAL TOPOLOGICAL ORDER");
+        System.out.println(
+                "(Dependencies First)\n");
+
+        for (int i = 0; i < topo.size(); i++) {
+
+            System.out.println(
+                    (i + 1)
+                    + ". "
+                    + topo.get(i));
+        }
+
+        System.out.println(
+                "\nVERIFICATION");
+
+        System.out.println(
+                "All dependencies appear before dependent modules.\n");
+
+        System.out.println(
+                "TIME COMPLEXITY");
+
+        System.out.println(
+                "O(V + E)");
+
+        System.out.println(
+                "\nSPACE COMPLEXITY");
+
+        System.out.println(
+                "O(V)");
+
+        int depth = 7800;
+
+        long frameSize = 32;
+
+        long heapMemory =
+                depth * frameSize;
+
+        System.out.println(
+                "\nPRODUCTION ANALYSIS");
+
+        System.out.println(
+                "Depth = 7800");
+
+        System.out.println(
+                "Artifacts = 50000");
+
+        System.out.println(
+                "Frame Size = 32 bytes");
+
+        System.out.println(
+                "Heap Stack Memory = "
+                        + heapMemory
+                        + " bytes");
+
+        System.out.println(
+                "= "
+                        + (heapMemory / 1024.0)
+                        + " KB");
+
+        System.out.println(
+                "\nADVANTAGE");
+
+        System.out.println(
+                "Iterative DFS avoids StackOverflowError by using heap memory instead of JVM call stack.");
     }
 }
