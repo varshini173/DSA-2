@@ -2,141 +2,144 @@ import java.util.*;
 
 public class co6 {
 
-    static int[][] split;
+    static class Item {
+        String name;
+        int weight;
+        int value;
+        double ratio;
 
-    static int matrixChainOrder(int[] p) {
-
-        int n = p.length - 1;
-
-        int[][] m = new int[n + 1][n + 1];
-
-        split = new int[n + 1][n + 1];
-
-        for (int len = 2; len <= n; len++) {
-
-            for (int i = 1; i <= n - len + 1; i++) {
-
-                int j = i + len - 1;
-
-                m[i][j] = Integer.MAX_VALUE;
-
-                for (int k = i; k < j; k++) {
-
-                    int cost =
-                            m[i][k]
-                            + m[k + 1][j]
-                            + p[i - 1] * p[k] * p[j];
-
-                    if (cost < m[i][j]) {
-
-                        m[i][j] = cost;
-
-                        split[i][j] = k;
-                    }
-                }
-            }
+        Item(String name, int weight, int value) {
+            this.name = name;
+            this.weight = weight;
+            this.value = value;
+            this.ratio = (double) value / weight;
         }
-
-        System.out.println("MCM DP TABLE\n");
-
-        for (int i = 1; i <= n; i++) {
-
-            for (int j = 1; j <= n; j++) {
-
-                if (j < i)
-                    System.out.print("-\t");
-                else
-                    System.out.print(m[i][j] + "\t");
-            }
-
-            System.out.println();
-        }
-
-        return m[1][n];
-    }
-
-    static String printParens(
-            int[][] s,
-            int i,
-            int j) {
-
-        if (i == j)
-            return "M" + i;
-
-        int k = s[i][j];
-
-        return "("
-                + printParens(s, i, k)
-                + " x "
-                + printParens(s, k + 1, j)
-                + ")";
     }
 
     public static void main(String[] args) {
 
-        int[] p = {
-                10,
-                30,
-                5,
-                60,
-                10,
-                20
+        Item[] items = {
+                new Item("A", 5, 40),
+                new Item("B", 8, 50),
+                new Item("C", 3, 20),
+                new Item("D",10, 70),
+                new Item("E", 4, 30),
+                new Item("F", 6, 35),
+                new Item("G", 7, 45),
+                new Item("H", 2, 15)
         };
 
-        System.out.println(
-                "SQL QUERY OPTIMIZER - MATRIX CHAIN MULTIPLICATION\n");
+        int W = 24;
 
-        System.out.println(
-                "Dimensions:");
+        greedyKnapsack(items, W);
 
-        System.out.println(
-                Arrays.toString(p));
+        System.out.println("\n----------------------------------\n");
 
-        int minCost =
-                matrixChainOrder(p);
+        dpKnapsack(items, W);
+    }
 
-        System.out.println(
-                "\nOPTIMAL PARENTHESIZATION");
+    static void greedyKnapsack(Item[] items, int capacity) {
 
-        System.out.println(
-                printParens(
-                        split,
-                        1,
-                        p.length - 2));
+        Item[] copy = items.clone();
 
-        System.out.println(
-                "\nMINIMUM SCALAR MULTIPLICATIONS");
+        Arrays.sort(copy, (a,b) ->
+                Double.compare(b.ratio, a.ratio));
 
-        System.out.println(
-                minCost);
+        int totalWeight = 0;
+        int totalValue = 0;
 
-        System.out.println(
-                "\nTIME COMPLEXITY");
+        System.out.println("GREEDY KNAPSACK (Value/Weight Ratio)\n");
 
-        System.out.println(
-                "O(n^3)");
+        System.out.println("Order of Consideration:");
 
-        System.out.println(
-                "\nSPACE COMPLEXITY");
+        for(Item item : copy){
+            System.out.printf("%s (w=%d, v=%d, ratio=%.2f)%n",
+                    item.name,item.weight,item.value,item.ratio);
+        }
 
-        System.out.println(
-                "O(n^2)");
+        System.out.println("\nSelected Items:");
 
-        int tables = 30;
+        for(Item item : copy){
 
-        long operations =
-                (long) tables
-                * tables
-                * tables;
+            if(totalWeight + item.weight <= capacity){
+                totalWeight += item.weight;
+                totalValue += item.value;
 
-        System.out.println(
-                "\nIRCTC SCALE ANALYSIS");
+                System.out.println(item.name);
+            }
+        }
 
-        System.out.println(
-                "Tables = 30");
+        System.out.println("\nGreedy Total Weight = " + totalWeight);
+        System.out.println("Greedy Total Value  = " + totalValue);
+    }
 
-        System.out.println(
-                "Approx DP Operations = "
-                        + operations);
+    static void dpKnapsack(Item[] items, int W){
+
+        int n = items.length;
+
+        int[][] dp = new int[n+1][W+1];
+
+        for(int i=1;i<=n;i++){
+
+            int wt = items[i-1].weight;
+            int val = items[i-1].value;
+
+            for(int w=0;w<=W;w++){
+
+                dp[i][w] = dp[i-1][w];
+
+                if(wt <= w){
+
+                    dp[i][w] =
+                            Math.max(dp[i][w],
+                                    dp[i-1][w-wt] + val);
+                }
+            }
+        }
+
+        System.out.println("DYNAMIC PROGRAMMING KNAPSACK\n");
+
+        System.out.println("Optimal Value = " + dp[n][W]);
+
+        List<String> chosen = new ArrayList<>();
+
+        int w = W;
+
+        for(int i=n;i>=1;i--){
+
+            if(dp[i][w] != dp[i-1][w]){
+
+                chosen.add(items[i-1].name);
+
+                w -= items[i-1].weight;
+            }
+        }
+
+        Collections.reverse(chosen);
+
+        System.out.println("Chosen Items = " + chosen);
+
+        int totalWeight = 0;
+
+        for(String s : chosen){
+
+            for(Item item : items){
+
+                if(item.name.equals(s)){
+                    totalWeight += item.weight;
+                }
+            }
+        }
+
+        System.out.println("Total Weight = " + totalWeight);
+
+        System.out.println("\nFINAL DP ROW (i = 8)\n");
+
+        for(int j=0;j<=W;j++){
+
+            System.out.printf("%4d", dp[n][j]);
+        }
+
+        System.out.println();
     }
 }
