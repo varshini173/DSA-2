@@ -1,133 +1,126 @@
-import java.util.Arrays;
 
 public class co5 {
 
-    static void swap(char[] arr, int i, int j) {
-        char temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+    static class Delivery {
+        int over;
+        int ball;
+
+        Delivery(int over, int ball) {
+            this.over = over;
+            this.ball = ball;
+        }
+
+        public String toString() {
+            return "(" + over + "," + ball + ")";
+        }
     }
 
-    static void dutchFlag(char[] arr) {
+    static Delivery[] countingSortByBall(Delivery[] arr) {
 
-        int low = 0;
-        int mid = 0;
-        int high = arr.length - 1;
+        int K = 12;
 
-        int step = 1;
+        int[] count = new int[K + 1];
 
-        System.out.println("DUTCH NATIONAL FLAG PARTITION\n");
+        for (Delivery d : arr)
+            count[d.ball]++;
 
-        System.out.println("Initial Array:");
-        System.out.println(Arrays.toString(arr));
+        for (int i = 1; i <= K; i++)
+            count[i] += count[i - 1];
+
+        Delivery[] out = new Delivery[arr.length];
+
+        for (int i = arr.length - 1; i >= 0; i--) {
+            Delivery d = arr[i];
+            out[--count[d.ball]] = d;
+        }
+
+        return out;
+    }
+
+    static Delivery[] countingSortByOver(Delivery[] arr) {
+
+        int K = 50;
+
+        int[] count = new int[K + 1];
+
+        for (Delivery d : arr)
+            count[d.over]++;
+
+        for (int i = 1; i <= K; i++)
+            count[i] += count[i - 1];
+
+        Delivery[] out = new Delivery[arr.length];
+
+        for (int i = arr.length - 1; i >= 0; i--) {
+            Delivery d = arr[i];
+            out[--count[d.over]] = d;
+        }
+
+        return out;
+    }
+
+    static void printArray(Delivery[] arr) {
+
+        for (Delivery d : arr)
+            System.out.print(d + " ");
+
         System.out.println();
-
-        System.out.printf(
-                "%-5s %-25s %-5s %-5s %-5s%n",
-                "Step",
-                "Array State",
-                "Low",
-                "Mid",
-                "High");
-
-        while (mid <= high) {
-
-            if (arr[mid] == 'S') {
-
-                swap(arr, low, mid);
-                low++;
-                mid++;
-
-            } else if (arr[mid] == 'P') {
-
-                mid++;
-
-            } else {
-
-                swap(arr, mid, high);
-                high--;
-            }
-
-            System.out.printf(
-                    "%-5d %-25s %-5d %-5d %-5d%n",
-                    step++,
-                    Arrays.toString(arr),
-                    low,
-                    mid,
-                    high);
-        }
-
-        System.out.println("\nFINAL PARTITIONED ARRAY");
-        System.out.println(Arrays.toString(arr));
-
-        System.out.println("\nREGIONS");
-
-        int success = 0;
-        int pending = 0;
-        int failed = 0;
-
-        for (char c : arr) {
-            if (c == 'S')
-                success++;
-            else if (c == 'P')
-                pending++;
-            else
-                failed++;
-        }
-
-        System.out.println(
-                "SUCCESS = " + success);
-
-        System.out.println(
-                "PENDING = " + pending);
-
-        System.out.println(
-                "FAILED  = " + failed);
     }
 
     public static void main(String[] args) {
 
-        char[] bookings = {
-                'F', 'S', 'P', 'F',
-                'S', 'S', 'P', 'F',
-                'P', 'S', 'F', 'P'
+        Delivery[] deliveries = {
+                new Delivery(2,4),
+                new Delivery(1,1),
+                new Delivery(3,6),
+                new Delivery(1,5),
+                new Delivery(2,2),
+                new Delivery(3,1),
+                new Delivery(1,3),
+                new Delivery(2,6),
+                new Delivery(3,4),
+                new Delivery(1,2)
         };
 
-        System.out.println(
-                "IRCTC TATKAL BOOKING STATUS PARTITIONING\n");
+        System.out.println("CRICKET DELIVERY SORTING");
+        System.out.println();
 
-        dutchFlag(bookings);
+        System.out.println("INPUT");
+        printArray(deliveries);
 
-        System.out.println("\nTIME COMPLEXITY");
-        System.out.println("O(n)");
+        Delivery[] pass1 = countingSortByBall(deliveries);
 
-        System.out.println("\nSPACE COMPLEXITY");
-        System.out.println("O(1)");
+        System.out.println();
+        System.out.println("PASS 1 : SORT BY BALL");
+        printArray(pass1);
 
-        System.out.println("\n3-WAY QUICKSORT ANALYSIS");
+        Delivery[] pass2 = countingSortByOver(pass1);
 
-        int n = 50000;
-        int k = 3;
+        System.out.println();
+        System.out.println("PASS 2 : STABLE SORT BY OVER");
+        printArray(pass2);
 
-        double normal =
-                n * (Math.log(n) / Math.log(2));
+        System.out.println();
+        System.out.println("FINAL SORTED ORDER");
+        printArray(pass2);
 
-        double threeWay =
-                n * (Math.log(k) / Math.log(2));
+        System.out.println();
+        System.out.println("TIME COMPLEXITY");
+        System.out.println("O(n + K)");
 
-        double speedup =
-                normal / threeWay;
+        System.out.println();
+        System.out.println("SPACE COMPLEXITY");
+        System.out.println("O(n + K)");
 
-        System.out.printf(
-                "Standard Quicksort Work : %.0f%n",
-                normal);
+        System.out.println();
+        System.out.println("STABILITY");
+        System.out.println("Reverse traversal preserves relative order of equal keys.");
 
-        System.out.printf(
-                "3-Way Quicksort Work    : %.0f%n",
-                threeWay);
-
-        System.out.printf(
-                "Approx Speedup          : %.2fx%n",
-                speedup);
+        System.out.println();
+        System.out.println("SEASON ANALYSIS");
+        System.out.println("Deliveries = 1,000,000");
+        System.out.println("Over Range = 0..49");
+        System.out.println("Ball Range = 1..12");
+        System.out.println("Counting Sort is ideal because K is very small.");
     }
 }
